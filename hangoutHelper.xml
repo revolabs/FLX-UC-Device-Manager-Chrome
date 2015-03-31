@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Module>
+	<ModulePrefs title="Hangout Helper">
+		<Require feature="views" />
+	</ModulePrefs>
+   <Content type="html"><![CDATA[
+<style>
+   body {
+      background-color: #222;
+      color: #a1a1a1;
+   }
+</style>
+<script src="//plus.google.com/hangouts/_/api/v1/hangout.js"></script>
+<script>
+   // Our namespace
+   var HangoutHelper = {};
+
+   // Our namespace global vars
+   HangoutHelper.startData = {};
+   HangoutHelper.theCall = {};
+
+   HangoutHelper.logIt = function(l) {
+      var $l = document.querySelector("#log");
+      $l.innerHTML = $l.innerHTML + "<br/>" + l;
+   }
+
+   HangoutHelper.sendCode = function() {
+
+      HangoutHelper.logIt("Sending meeting place number " + HangoutHelper.startData.codeData.code);
+
+      for (var i=0; i < HangoutHelper.startData.codeData.code.length; i++) {
+         setTimeout(HangoutHelper.theCall.sendTone(HangoutHelper.startData.codeData.code[" + i + "]), i*300);
+      }
+
+      // TODO
+      /*setTimeout(function() {
+         new Audio("http://erwin5.com/hangoutHelp/ScottErwin.mp3").play();
+         HangoutHelper.theCall.sendTone('#');
+      }, HangoutHelper.startData.codeData.wait);*/
+   }
+
+
+   HangoutHelper.callStateChangedEventHandler = function(callState) {
+      switch (callState.newState)
+      {
+         case gapi.hangout.telephone.CallState.RINGING:
+            HangoutHelper.logIt("Ringing...");
+            break;
+         case gapi.hangout.telephone.CallState.CONNECTED:
+            HangoutHelper.logIt("Connected!");
+            if (HangoutHelper.startData.codeData.code) {
+               setTimeout(HangoutHelper.sendCode(), HangoutHelper.startData.phoneData.wait);
+            }
+            break;
+         case gapi.hangout.telephone.CallState.ENDED:
+            HangoutHelper.logIt("Call Ended.");
+            break;
+      }
+   }
+
+   HangoutHelper.callInitiatedEventHandler = function(call) {
+      call.callInformation.onCallStateChanged.add(HangoutHelper.callStateChangedEventHandler);
+   }
+
+   HangoutHelper.placeCall = function() {
+      HangoutHelper.logIt("Dialing " + HangoutHelper.startData.phoneData.number);
+
+      gapi.hangout.telephone.onCallInitiated.add(HangoutHelper.callInitiatedEventHandler);    
+      HangoutHelper.theCall = gapi.hangout.telephone.beginCall(HangoutHelper.startData.phoneData.number);
+   }
+
+   HangoutHelper.init = function() {
+      // When API is ready...
+      gapi.hangout.onApiReady.add(function(eventObj) {
+
+         HangoutHelper.logIt("Initializing...");
+
+         if (eventObj.isApiReady) {
+            // Mute camera initially
+            gapi.hangout.av.setCameraMute(true);
+
+            HangoutHelper.startData = JSON.parse(gapi.hangout.getStartData());
+            // TODO: We should validate gPhone JSON data
+
+            HangoutHelper.placeCall();
+         }
+      });
+   }
+
+   gadgets.util.registerOnLoadHandler(HangoutHelper.init);
+</script>
+   <h1>Hangout Helper</h1>
+   <p>Below is the log area of our app:</p>
+   <div id="log"></div>
+]]>
+</Content>
+</Module>
+
